@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Loo Look",
+    "slug": "loo-look",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "loolook",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Loo Look uses your location to find bathrooms near you."
+        }
+      ]
+    ]
+  }
+}
