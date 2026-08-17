@@ -26,6 +26,10 @@ interface AppStoreValue {
   /** Returns the created bathroom so a rating can be attached immediately. */
   addBathroom: (input: NewBathroom) => Bathroom;
   addRating: (input: NewRating) => Rating;
+  /** Merge fetched bathrooms (e.g. from OpenStreetMap) into the store, deduped by id. */
+  loadBathrooms: (incoming: Bathroom[]) => void;
+  /** Seed the curated UIUC demo bathrooms — used as a fallback when live data is unavailable. */
+  loadDemoData: () => void;
   ratingsFor: (bathroomId: string) => Rating[];
   statsFor: (bathroomId: string) => BathroomStats;
 }
@@ -33,7 +37,9 @@ interface AppStoreValue {
 const AppStoreContext = createContext<AppStoreValue | null>(null);
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [bathrooms, setBathrooms] = useState<Bathroom[]>(MOCK_BATHROOMS);
+  // Bathrooms start empty — the Nearby screen fills this from the user's real
+  // location via OpenStreetMap. Demo data is only seeded as a fallback.
+  const [bathrooms, setBathrooms] = useState<Bathroom[]>([]);
   const [ratings, setRatings] = useState<Rating[]>(MOCK_RATINGS);
 
   const users = useMemo(
@@ -41,6 +47,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [],
   );
   const currentUser = users[CURRENT_USER_ID];
+
+  const loadBathrooms = useCallback((incoming: Bathroom[]) => {
+    setBathrooms((prev) => {
+      const byId = new Map(prev.map((b) => [b.id, b]));
+      for (const b of incoming) {
+        if (!byId.has(b.id)) byId.set(b.id, b);
+      }
+      return [...byId.values()];
+    });
+  }, []);
+
+  const loadDemoData = useCallback(() => {
+    loadBathrooms(MOCK_BATHROOMS);
+  }, [loadBathrooms]);
 
   const addBathroom = useCallback((input: NewBathroom): Bathroom => {
     const bathroom: Bathroom = {
@@ -74,18 +94,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const statsFor = useCallback(
     (bathroomId: string): BathroomStats => {
+      // Amenities known at import (e.g. OSM tags) show even before any ratings.
+      const seeded = bathrooms.find((b) => b.id === bathroomId)?.amenities ?? [];
       const rs = ratings.filter((r) => r.bathroomId === bathroomId);
       if (rs.length === 0) {
-        return { avgScore: null, ratingCount: 0, amenities: [], lastRatedAt: null };
+        return { avgScore: null, ratingCount: 0, amenities: [...seeded], lastRatedAt: null };
       }
       const counts = new Map<string, number>();
       for (const r of rs) {
         for (const id of r.amenities) counts.set(id, (counts.get(id) ?? 0) + 1);
       }
-      const amenities = [...counts.entries()]
+      const aggregated = [...counts.entries()]
         .filter(([, count]) => count * 2 >= rs.length)
         .sort((a, b) => b[1] - a[1])
         .map(([id]) => id);
+      const amenities = [...new Set([...seeded, ...aggregated])];
       return {
         avgScore: rs.reduce((sum, r) => sum + r.score, 0) / rs.length,
         ratingCount: rs.length,
@@ -93,12 +116,34 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         lastRatedAt: rs.reduce((max, r) => (r.createdAt > max ? r.createdAt : max), rs[0].createdAt),
       };
     },
-    [ratings],
+    [ratings, bathrooms],
   );
 
   const value = useMemo(
-    () => ({ bathrooms, ratings, users, currentUser, addBathroom, addRating, ratingsFor, statsFor }),
-    [bathrooms, ratings, users, currentUser, addBathroom, addRating, ratingsFor, statsFor],
+    () => ({
+      bathrooms,
+      ratings,
+      users,
+      currentUser,
+      addBathroom,
+      addRating,
+      loadBathrooms,
+      loadDemoData,
+      ratingsFor,
+      statsFor,
+    }),
+    [
+      bathrooms,
+      ratings,
+      users,
+      currentUser,
+      addBathroom,
+      addRating,
+      loadBathrooms,
+      loadDemoData,
+      ratingsFor,
+      statsFor,
+    ],
   );
 
   return <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>;

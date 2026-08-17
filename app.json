@@ -10,6 +10,20 @@
     "ios": {
       "supportsTablet": false
     },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon-192.png",
+      "themeColor": "#000000",
+      "backgroundColor": "#000000",
+      "display": "standalone",
+      "name": "Loo Look",
+      "shortName": "Loo Look",
+      "description": "Beli for bathrooms — find a good bathroom near you.",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/"
+    },
     "plugins": [
       "expo-router",
       [

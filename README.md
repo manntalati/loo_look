@@ -5,8 +5,17 @@ under 30 seconds when you're done. Product definition lives in [SCOPE.md](SCOPE.
 
 ## Stack
 
-Expo (SDK 54) · expo-router · TypeScript · react-native-maps (Apple Maps) ·
-in-memory mock data seeded around UIUC (no backend yet).
+Expo (SDK 54) · expo-router · TypeScript · react-native-maps (Apple Maps, native) /
+Leaflet + OpenStreetMap tiles (web) · live worldwide bathroom data from the
+OpenStreetMap Overpass API (no backend yet).
+
+## Location & data (worldwide)
+
+The Nearby screen is location-first: it requests the user's location on launch and
+loads public bathrooms near them from OpenStreetMap (`amenity=toilets`), anywhere in
+the world — not just UIUC. If location is unavailable, it prompts to enable it, with
+an option to browse the curated UIUC demo data. Ratings/scores are still in-memory
+(they reset on reload) until a real backend lands (Supabase proposed, see SCOPE.md).
 
 ## Setup
 
